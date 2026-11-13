@@ -98,44 +98,64 @@ OneSync is intended to support the way local small businesses sell and communica
 
 ## Repository structure
 
-The project uses the Next.js App Router with the `src/` directory and TypeScript. Route entry points and layouts live in `src/app/`; product logic stays grouped by domain in `src/features/`.
+The project uses the Next.js App Router with TypeScript. The route and feature directories follow the screens in the interface menu.
 
 ```text
 .
-├── docs/                 # Product and technical documentation
-├── public/               # Static assets served from the site root
-├── scripts/              # Development and maintenance scripts
+├── docs/
+├── public/
+├── scripts/
 ├── src/
-│   ├── app/              # Next.js routes, layouts, and global styles
+│   ├── app/                       # Routes mirror the sidebar and settings menu
 │   │   ├── globals.css
 │   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── components/       # Shared React UI components
-│   ├── features/         # Product capabilities grouped by domain
-│   │   ├── automation/
-│   │   ├── customer-profiles/
+│   │   ├── page.tsx
 │   │   ├── inbox/
-│   │   ├── live-selling/
-│   │   └── payment-verification/
-│   ├── integrations/     # External messaging, courier, and payment services
-│   │   ├── couriers/
-│   │   ├── messaging/
-│   │   └── payments/
-│   └── shared/           # Framework-independent shared code
-│       ├── lib/
-│       ├── styles/
-│       └── types/
-└── tests/
-    ├── integration/
-    └── unit/
+│   │   ├── orders/
+│   │   ├── live/
+│   │   │   └── go-live/
+│   │   ├── customers/
+│   │   ├── reports/
+│   │   └── settings/
+│   │       ├── channels/
+│   │       ├── team/
+│   │       ├── saved-replies/
+│   │       ├── business-hours/
+│   │       └── billing/
+│   ├── components/                # Shared app shell, icons, and page components
+│   ├── features/                  # Screen-specific interface and behavior
+│   │   ├── inbox/
+│   │   ├── orders/
+│   │   ├── live/
+│   │   ├── customers/
+│   │   ├── reports/
+│   │   └── settings/
+│   ├── integrations/              # Planned messaging, courier, and payment adapters
+│   └── shared/                    # Planned shared utilities, styles, and types
+├── tests/
+│   ├── integration/
+│   └── unit/
+├── package.json
+├── package-lock.json
+└── tsconfig.json
 ```
 
-Next.js discovers routes from files inside `src/app/` (for example, `src/app/inbox/page.tsx` creates the `/inbox` route). Keep route-specific composition there, feature logic in `src/features/`, reusable UI in `src/components/`, and external service adapters in `src/integrations/`. Placeholder files keep planned directories visible until implementation files are added.
+The menu routes are `/inbox`, `/orders`, `/live`, `/live/go-live`, `/customers`, `/reports`, and the five `/settings/*` pages. Next.js route entry points live in `src/app/`; menu-specific UI lives in the matching `src/features/` folder.
 
 ## Status
 
-This repository contains the product direction and a Next.js App Router starter layout. Application dependencies, integration credentials, and development scripts have not been configured yet.
+The repository includes a responsive interface prototype with sample data. Sending replies and inbox filters work locally in the browser; messaging integrations, authentication, and persistent storage are not connected yet.
 
-## Contributing
+## Development
 
-There are no contribution or development setup instructions yet. These will be added when the project has an implementation and development workflow.
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). The root route redirects to `/inbox`.
+
+```bash
+npm run typecheck
+npm run build
+```
