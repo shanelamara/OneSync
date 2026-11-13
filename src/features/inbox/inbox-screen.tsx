@@ -1,207 +1,93 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Icon } from "../../components/icon";
 
 type Message = {
+  id: string;
   direction: "incoming" | "outgoing";
   text: string;
   time: string;
+  createdAt: string;
+  deliveryStatus: string;
 };
 
 type Conversation = {
   id: string;
+  customerId: string;
   initials: string;
   name: string;
   channel: "FB" | "IG" | "TT";
+  channelName: string;
+  channelHandle: string;
+  channelStatus: string;
   time: string;
+  lastMessageAt: string;
   preview: string;
   tags: string[];
   mine: boolean;
+  assignedToId: string | null;
   needsReply: boolean;
   order: boolean;
-  status: "Open" | "Pending" | "Resolved";
+  status: "OPEN" | "PENDING" | "RESOLVED";
   messages: Message[];
 };
 
-const initialConversations: Conversation[] = [
-  {
-    id: "maria",
-    initials: "MS",
-    name: "Maria Santos",
-    channel: "FB",
-    time: "2m",
-    preview: "Sige po, kukunin ko. Pwede ba GCash?",
-    tags: ["Live claim", "Unread"],
-    mine: false,
-    needsReply: true,
-    order: true,
-    status: "Open",
-    messages: [
-      {
-        direction: "incoming",
-        text: "Hi po! Available pa ba yung floral dress na nasa live kagabi? Size M po.",
-        time: "10:42",
-      },
-      {
-        direction: "outgoing",
-        text: "Hello Maria! Yes po, may 2 pieces pa sa size M.",
-        time: "10:44",
-      },
-      {
-        direction: "incoming",
-        text: "Sige po, kukunin ko. Pwede ba GCash?",
-        time: "10:46",
-      },
-    ],
-  },
-  {
-    id: "jaycee",
-    initials: "JC",
-    name: "@jaycee.finds",
-    channel: "IG",
-    time: "8m",
-    preview: "Sent GCash screenshot po",
-    tags: ["Payment proof"],
-    mine: true,
-    needsReply: true,
-    order: true,
-    status: "Open",
-    messages: [
-      {
-        direction: "incoming",
-        text: "Sent GCash screenshot po. Pa-check na lang if pumasok. Thank you!",
-        time: "10:38",
-      },
-    ],
-  },
-  {
-    id: "ana",
-    initials: "AD",
-    name: "Ana Dela Cruz",
-    channel: "TT",
-    time: "15m",
-    preview: "Magkano shipping to Cebu?",
-    tags: ["Inquiry"],
-    mine: false,
-    needsReply: true,
-    order: false,
-    status: "Pending",
-    messages: [
-      {
-        direction: "incoming",
-        text: "Magkano po shipping to Cebu?",
-        time: "10:31",
-      },
-    ],
-  },
-  {
-    id: "liza",
-    initials: "LR",
-    name: "Liza Ramos",
-    channel: "FB",
-    time: "24m",
-    preview: "mine po! Floral dress #12",
-    tags: ["Live claim"],
-    mine: true,
-    needsReply: false,
-    order: true,
-    status: "Open",
-    messages: [
-      {
-        direction: "incoming",
-        text: "mine po! Floral dress #12",
-        time: "10:22",
-      },
-    ],
-  },
-  {
-    id: "joy",
-    initials: "JA",
-    name: "Joy Aquino",
-    channel: "FB",
-    time: "2h",
-    preview: "Pwede po bang COD?",
-    tags: ["Unassigned"],
-    mine: false,
-    needsReply: true,
-    order: false,
-    status: "Open",
-    messages: [
-      {
-        direction: "incoming",
-        text: "Pwede po bang COD?",
-        time: "08:40",
-      },
-    ],
-  },
-  {
-    id: "ken",
-    initials: "KV",
-    name: "Ken Villanueva",
-    channel: "IG",
-    time: "1d",
-    preview: "Thank you po, received na!",
-    tags: ["Resolved"],
-    mine: true,
-    needsReply: false,
-    order: false,
-    status: "Resolved",
-    messages: [
-      {
-        direction: "incoming",
-        text: "Thank you po, received na!",
-        time: "Yesterday",
-      },
-    ],
-  },
-  {
-    id: "mika",
-    initials: "MK",
-    name: "@mikaela.shop",
-    channel: "TT",
-    time: "1d",
-    preview: "Do you ship outside Metro Manila?",
-    tags: ["Inquiry"],
-    mine: false,
-    needsReply: false,
-    order: false,
-    status: "Pending",
-    messages: [
-      {
-        direction: "incoming",
-        text: "Do you ship outside Metro Manila?",
-        time: "Yesterday",
-      },
-    ],
-  },
-];
-
 const filters = ["All", "Unassigned", "Mine", "Needs reply", "Orders"];
 
-function channelName(channel: Conversation["channel"]) {
-  if (channel === "FB") return "Facebook Messenger";
-  if (channel === "IG") return "Instagram DM";
-  return "TikTok";
-}
-
-function formatTime() {
+function localTime(date: string | Date) {
   return new Intl.DateTimeFormat("en-PH", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
     timeZone: "Asia/Manila",
-  }).format(new Date());
+  }).format(date instanceof Date ? date : new Date(date));
 }
 
 export function InboxScreen() {
-  const [conversations, setConversations] = useState(initialConversations);
-  const [activeId, setActiveId] = useState("maria");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeId, setActiveId] = useState("");
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState("");
   const [channelFilter, setChannelFilter] = useState("all");
   const [showConversation, setShowConversation] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/inbox")
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error?.message ?? "Could not load inbox.");
+        }
+        return result.data as Conversation[];
+      })
+      .then((rows) => {
+        if (!active) return;
+        setConversations(rows);
+        setActiveId((current) =>
+          rows.some((conversation) => conversation.id === current)
+            ? current
+            : rows[0]?.id ?? "",
+        );
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setError(cause instanceof Error ? cause.message : "Could not load inbox.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const visibleConversations = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -229,34 +115,70 @@ export function InboxScreen() {
   const activeConversation =
     conversations.find((conversation) => conversation.id === activeId) ?? null;
 
-  function updateActiveConversation(update: Partial<Conversation>) {
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === activeId ? { ...conversation, ...update } : conversation,
-      ),
-    );
+  async function updateActiveConversation(
+    update: { status?: Conversation["status"]; assignToOwner?: boolean },
+  ) {
+    if (!activeConversation) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/conversations/${activeConversation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(update),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message ?? "Could not update conversation.");
+      const saved = result.data as Conversation;
+      setConversations((current) =>
+        current.map((conversation) => (conversation.id === saved.id ? saved : conversation)),
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not update conversation.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function sendReply(event: FormEvent<HTMLFormElement>) {
+  async function sendReply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = draft.trim();
     if (!message || !activeConversation) return;
 
-    const time = formatTime();
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === activeId
-          ? {
-              ...conversation,
-              preview: message,
-              time: "now",
-              needsReply: false,
-              messages: [...conversation.messages, { direction: "outgoing", text: message, time }],
-            }
-          : conversation,
-      ),
-    );
-    setDraft("");
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/conversations/${activeConversation.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: message }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message ?? "Could not save reply.");
+      const savedMessage = result.data as Message;
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === activeConversation.id
+            ? {
+                ...conversation,
+                preview: savedMessage.text,
+                time: "now",
+                lastMessageAt: savedMessage.createdAt,
+                needsReply: false,
+                messages: [
+                  ...conversation.messages,
+                  { ...savedMessage, time: localTime(savedMessage.createdAt) },
+                ],
+              }
+            : conversation,
+        ),
+      );
+      setDraft("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save reply.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -380,8 +302,9 @@ export function InboxScreen() {
             <div className="conversation-actions">
               <button
                 className="text-button"
-                onClick={() => updateActiveConversation({ mine: true })}
-                type="button"
+              disabled={saving}
+              onClick={() => void updateActiveConversation({ assignToOwner: true })}
+              type="button"
               >
                 Assign to me
               </button>
@@ -404,24 +327,27 @@ export function InboxScreen() {
               aria-label="Conversation status"
               onChange={(event) => {
                 const status = event.target.value;
-                if (status === "Open" || status === "Pending" || status === "Resolved") {
+                if (status === "OPEN" || status === "PENDING" || status === "RESOLVED") {
                   updateActiveConversation({ status });
                 }
               }}
               value={activeConversation.status}
             >
-              <option>Open</option>
-              <option>Pending</option>
-              <option>Resolved</option>
+              <option value="OPEN">Open</option>
+              <option value="PENDING">Pending</option>
+              <option value="RESOLVED">Resolved</option>
             </select>
           </div>
 
           <div aria-live="polite" className="thread">
             <div className="thread-date">Today</div>
             {activeConversation.messages.map((message, index) => (
-              <div className={`message ${message.direction}`} key={`${index}-${message.time}`}>
+              <div className={`message ${message.direction}`} key={message.id}>
                 <div className="message-bubble">{message.text}</div>
                 <div className="message-time">{message.time}</div>
+                {message.deliveryStatus === "LOCAL_ONLY" ? (
+                  <div className="message-time">Saved locally; not sent to {activeConversation.channelName}.</div>
+                ) : null}
               </div>
             ))}
             {activeConversation.order ? (
@@ -468,8 +394,8 @@ export function InboxScreen() {
                   <Icon name="spark" size={16} />
                 </button>
               </div>
-              <button className="send-button" type="submit">
-                Send <Icon name="send" size={13} />
+              <button className="send-button" disabled={saving} type="submit">
+                {saving ? "Saving..." : "Send"} <Icon name="send" size={13} />
               </button>
             </div>
           </form>
