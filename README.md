@@ -96,9 +96,45 @@ OneSync is intended to support the way local small businesses sell and communica
 - Teams that need shared ownership of conversations and follow-ups.
 - Agencies and social media managers working across multiple client brands.
 
+## Repository structure
+
+The project uses the Next.js App Router with the `src/` directory and TypeScript. Route entry points and layouts live in `src/app/`; product logic stays grouped by domain in `src/features/`.
+
+```text
+.
+├── docs/                 # Product and technical documentation
+├── public/               # Static assets served from the site root
+├── scripts/              # Development and maintenance scripts
+├── src/
+│   ├── app/              # Next.js routes, layouts, and global styles
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/       # Shared React UI components
+│   ├── features/         # Product capabilities grouped by domain
+│   │   ├── automation/
+│   │   ├── customer-profiles/
+│   │   ├── inbox/
+│   │   ├── live-selling/
+│   │   └── payment-verification/
+│   ├── integrations/     # External messaging, courier, and payment services
+│   │   ├── couriers/
+│   │   ├── messaging/
+│   │   └── payments/
+│   └── shared/           # Framework-independent shared code
+│       ├── lib/
+│       ├── styles/
+│       └── types/
+└── tests/
+    ├── integration/
+    └── unit/
+```
+
+Next.js discovers routes from files inside `src/app/` (for example, `src/app/inbox/page.tsx` creates the `/inbox` route). Keep route-specific composition there, feature logic in `src/features/`, reusable UI in `src/components/`, and external service adapters in `src/integrations/`. Placeholder files keep planned directories visible until implementation files are added.
+
 ## Status
 
-This repository currently contains the project README and product direction. Implementation details, supported integrations, setup instructions, and release status will be added as the application takes shape.
+This repository contains the product direction and a Next.js App Router starter layout. Application dependencies, integration credentials, and development scripts have not been configured yet.
 
 ## Contributing
 
